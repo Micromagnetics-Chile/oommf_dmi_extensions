@@ -1,10 +1,10 @@
-/* FILE: ExchangeAndDMI_cnv_12ngbrs.cc
+/* FILE: ExchangeAndDMI_d2d_12ngbrs.cc
  *
  * Exchange and Dzyaloshinskii-Moriya field and energy calculation.
  *
- * DMI is defined for the T crystallographic class [1, 2]:
+ * DMI is defined for the D2d crystallographic class [1, 2]:
  *
- * $w_\text{dmi} = D ( L_{xz}^{(x)} + L_{yz}^{(y)} )
+ * $w_\text{dmi} = D ( L_{xz}^{(y)} + L_{yz}^{(x)} )
  *
  * The calculation uses a 5-point stencil for both 1st and 2nd order
  * derivatives of m, making a total of 12 neighbours per mesh site.
@@ -29,7 +29,7 @@
 #include "atlas.h"
 #include "director.h"
 #include "energy.h" // Needed to make MSVC++ 5 happy
-#include "exchange_dmi_t_12ngbrs.h"
+#include "exchange_dmi_d2d_12ngbrs.h"
 #include "key.h"
 #include "mesh.h"
 #include "meshvalue.h"
@@ -41,12 +41,12 @@
 OC_USE_STRING;
 
 // Oxs_Ext registration support
-OXS_EXT_REGISTER(Oxs_ExchangeAndDMI_T_12ngbrs);
+OXS_EXT_REGISTER(Oxs_ExchangeAndDMI_D2d_12ngbrs);
 
 /* End includes */
 
 // Constructor
-Oxs_ExchangeAndDMI_T_12ngbrs::Oxs_ExchangeAndDMI_T_12ngbrs(
+Oxs_ExchangeAndDMI_D2d_12ngbrs::Oxs_ExchangeAndDMI_D2d_12ngbrs(
     const char *name,     // Child instance id
     Oxs_Director *newdtr, // App director
     const char *argstr)   // MIF input block parameters
@@ -57,7 +57,16 @@ Oxs_ExchangeAndDMI_T_12ngbrs::Oxs_ExchangeAndDMI_T_12ngbrs(
   atlaskey.Set(atlas.GetPtr());
   /// Dependency lock is held until *this is deleted.
 
-  // Atlas might not be necessary
+  // Check for optional default_D parameter; default is 0.
+  OC_REAL8m default_D = GetRealInitValue("default_D", 0.0);
+  // Check for optional default_Aex parameter; default is 1.
+  OC_REAL8m default_Aex = GetRealInitValue("default_Aex", 1.0);
+
+  // Normal to plane
+  // String Dnormal = GetStringInitValue("Dnormal");
+
+  // Allocate A matrix.  Because raw pointers are used, a memory
+  // leak will occur if an exception is thrown inside this constructor.
   // A_size -> Atlas size
   A_size = atlas->GetRegionCount();
   if (A_size < 1) {
@@ -141,23 +150,17 @@ Oxs_ExchangeAndDMI_T_12ngbrs::Oxs_ExchangeAndDMI_T_12ngbrs(
   VerifyAllInitArgsUsed();
 }
 
-Oxs_ExchangeAndDMI_T_12ngbrs::~Oxs_ExchangeAndDMI_T_12ngbrs() {
-  // if (A_size > 0 && D != NULL && Aex != NULL) {
-  //   delete[] D[0];
-  //   delete[] D;
-  //   delete[] Aex[0];
-  //   delete[] Aex;
-  // }
+Oxs_ExchangeAndDMI_D2d_12ngbrs::~Oxs_ExchangeAndDMI_D2d_12ngbrs() {
 }
 
-OC_BOOL Oxs_ExchangeAndDMI_T_12ngbrs::Init() {
+OC_BOOL Oxs_ExchangeAndDMI_D2d_12ngbrs::Init() {
   mesh_id = 0;
   region_id.Release();
   return Oxs_Energy::Init();
 }
 
-void Oxs_ExchangeAndDMI_T_12ngbrs::GetEnergy(const Oxs_SimState &state,
-                                             Oxs_EnergyData &oed) const {
+void Oxs_ExchangeAndDMI_D2d_12ngbrs::GetEnergy(const Oxs_SimState &state,
+                                               Oxs_EnergyData &oed) const {
 
   const Oxs_MeshValue<ThreeVector> &spin = state.spin;
   const Oxs_MeshValue<OC_REAL8m> &Ms_inverse = *(state.Ms_inverse);
@@ -170,6 +173,19 @@ void Oxs_ExchangeAndDMI_T_12ngbrs::GetEnergy(const Oxs_SimState &state,
 
   // --------------------------------------------------------------------------
 
+  OC_INDEX xdim = mesh->DimX();
+  OC_INDEX ydim = mesh->DimY();
+  OC_INDEX zdim = mesh->DimZ();
+  OC_INDEX xydim = xdim * ydim;
+  OC_INDEX xyzdim = xdim * ydim * zdim;
+
+  OC_REAL8m wgtx = 1.0 / (mesh->EdgeLengthX());
+  OC_REAL8m wgty = 1.0 / (mesh->EdgeLengthY());
+  OC_REAL8m wgtz = 1.0 / (mesh->EdgeLengthZ());
+  OC_REAL8m deltaX = mesh->EdgeLengthX();
+  OC_REAL8m deltaY = mesh->EdgeLengthY();
+  OC_REAL8m deltaZ = mesh->EdgeLengthZ();
+
   OC_REAL8m mu0Inv = 1 / MU0;
   OC_REAL8m fdsign = 1.;
   ThreeVector ZeroVector(0., 0., 0.);
@@ -180,7 +196,7 @@ void Oxs_ExchangeAndDMI_T_12ngbrs::GetEnergy(const Oxs_SimState &state,
     for (OC_INDEX y = 0; y < ydim; y++) {
       for (OC_INDEX x = 0; x < xdim; x++) {
 
-        OC_INDEX i = mesh->Index(x, y, z); // Get base linear address
+        OC_INDEX i = GetIndex(x, y, z, xdim, ydim, zdim, xperiodic, yperiodic, zperiodic); // Get base linear address
         ThreeVector base = spin[i];
         ThreeVector spinNgbr(0., 0., 0.);
         ThreeVector zu(0., 0., 1.);
@@ -229,8 +245,8 @@ void Oxs_ExchangeAndDMI_T_12ngbrs::GetEnergy(const Oxs_SimState &state,
 
           sum += 2.0 * Aex * d2my_dy2;
           // DMI field
-          sum.x += 2 * D * (-dmz_dy);
-          sum.z += 2 * D * (dmx_dy);
+          sum.x += -2 * D * (dmz_dy);
+          sum.z += -2 * D * (-dmx_dy);
         }
 
         if (xdim > 4) {
@@ -254,12 +270,12 @@ void Oxs_ExchangeAndDMI_T_12ngbrs::GetEnergy(const Oxs_SimState &state,
           SpinP1 = (Msi_P1 == 0.0) ? ZeroVector : spin[P1];
           SpinP2 = (Msi_P2 == 0.0) ? ZeroVector : spin[P2];
 
-          // If there is no material in the nearest neighbor, use 3-point stencil
           if ((Msi_M1 == 0.0 && Msi_M2 != 0.0) || (Msi_P1 == 0.0 && Msi_P2 != 0.0)) {
             dmz_dx = wgtx * 0.5 * (SpinP1.z - SpinM1.z);
             dmy_dx = wgtx * 0.5 * (SpinP1.y - SpinM1.y);
             d2mx_dx2 = wgtx * wgtx * (SpinP1 - 2. * spin[i] + SpinM1);
           } else {
+            // printf("5 point -- Spin i = %d  MsiM2 = %.10f  MsiM1 = %.10f  MsiP1 = %.10f  MsiP2 = %.10f \n", i, Msi_M2, Msi_M1, Msi_P1, Msi_P2);
             dmz_dx = wgtx * (1. / 12) * (SpinM2.z - 8. * SpinM1.z + 8. * SpinP1.z - SpinP2.z);
             dmy_dx = wgtx * (1. / 12) * (SpinM2.y - 8. * SpinM1.y + 8. * SpinP1.y - SpinP2.y);
             d2mx_dx2 = wgtx * wgtx * (1. / 12) * (-1. * SpinM2 + 16. * SpinM1 - 30. * spin[i] + 16. * SpinP1 - 1. * SpinP2);
@@ -267,14 +283,13 @@ void Oxs_ExchangeAndDMI_T_12ngbrs::GetEnergy(const Oxs_SimState &state,
 
           sum += 2.0 * Aex * d2mx_dx2;
           // DMI field
-          sum.y += 2 * D * (dmz_dx);
-          sum.z += 2 * D * (-dmy_dx);
+          sum.y += -2 * D * (dmz_dx);
+          sum.z += -2 * D * (-dmy_dx);
         }
 
-        // TODO: allow smaller samples in the other directions
-        if (zdim > 4) {
-          OC_REAL8m dmy_dz, dmx_dz;
-          ThreeVector d2mz_dz2;
+        if (zdim > 1) {
+
+          ThreeVector d2mz_dz2(0.0, 0.0, 0.0);
 
           // NEW:
           OC_INDEX M2 = nn_neighbors[6 * i + 4];
@@ -292,35 +307,19 @@ void Oxs_ExchangeAndDMI_T_12ngbrs::GetEnergy(const Oxs_SimState &state,
           SpinP1 = (Msi_P1 == 0.0) ? ZeroVector : spin[P1];
           SpinP2 = (Msi_P2 == 0.0) ? ZeroVector : spin[P2];
 
-          // If there is no material in the nearest neighbor (single spin hole), use 3-point stencil
-          if ((Msi_M1 == 0.0 && Msi_M2 != 0.0) || (Msi_P1 == 0.0 && Msi_P2 != 0.0)) {
-            dmx_dz = wgtz * 0.5 * (SpinP1.x - SpinM1.x);
-            dmy_dz = wgtz * 0.5 * (SpinP1.y - SpinM1.y);
+
+          // If layer is thin in z, or there is no material in the nearest neighbor, use 3-point stencil
+          // NOTE: we have to be careful with the Neumann condition if there is only exchange; in this
+          // case we should separate the (SpinM1 - spin[i]) and (SpinP1 - spin[i]) contributions
+          // per neighbour, which satisfies the condition correctly
+          if ((zdim >= 2 && zdim <= 4) || (Msi_M1 == 0.0 && Msi_M2 != 0.0) || (Msi_P1 == 0.0 && Msi_P2 != 0.0)) {
             d2mz_dz2 = wgtz * wgtz * (SpinP1 - 2. * spin[i] + SpinM1);
           } else {
-            dmy_dz = wgtz * (1. / 12) * (SpinM2.y - 8. * SpinM1.y + 8. * SpinP1.y - SpinP2.y);
-            dmx_dz = wgtz * (1. / 12) * (SpinM2.x - 8. * SpinM1.x + 8. * SpinP1.x - SpinP2.x);
             d2mz_dz2 = wgtz * wgtz * (1. / 12) * (-1. * SpinM2 + 16. * SpinM1 - 30. * spin[i] + 16. * SpinP1 - 1. * SpinP2);
           }
 
           sum += 2.0 * Aex * d2mz_dz2;
-          // DMI:
-          sum.x += 2 * D * (dmy_dz);
-          sum.y += 2 * D * (-dmx_dz);
 
-          // Otherwise use 6-ngbr stencil
-        } else if (zdim <= 4) {
-          OC_REAL8m dmy_dz, dmx_dz;
-          ThreeVector d2mz_dz2;
-
-          dmy_dz = 0.5 * wgtz * (SpinP1.y - SpinM1.y);
-          dmx_dz = 0.5 * wgtz * (SpinP1.x - SpinM1.x);
-          d2mz_dz2 = wgtz * wgtz * (SpinM1 - 2.0 * spin[i] + SpinP1);
-
-          sum += 2.0 * Aex * d2mz_dz2;
-          // DMI:
-          sum.x += 2 * D * (dmy_dz);
-          sum.y += 2 * D * (-dmx_dz);
         }
 
         field[i] = (mu0Inv * Msii) * sum;
