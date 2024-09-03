@@ -1,10 +1,12 @@
-/* FILE: ExchangeAndDMI_cnv_12ngbrs.cc
+/* FILE: ExchangeAndDMI_t_12ngbrs.cc
  *
  * Exchange and Dzyaloshinskii-Moriya field and energy calculation.
  *
  * DMI is defined for the T crystallographic class [1, 2]:
  *
- * $w_\text{dmi} = D ( L_{xz}^{(x)} + L_{yz}^{(y)} )
+ * $w_\text{dmi} = D ( L_{xz}^{(y)} + L_{zy}^{(x)} + L_{yx}^{(z)} )
+ *
+ * Note that this has the opposite sign than in [3].
  *
  * The calculation uses a 5-point stencil for both 1st and 2nd order
  * derivatives of m, making a total of 12 neighbours per mesh site.
@@ -21,6 +23,7 @@
  * (1989).
  * [2] C. Abert. Micromagnetics and spintronics: models and numerical methods.
  * The European Physical Journal B. 92 (120). 2019.
+ * [3] Ado et al. PRB 101, 161403(R) (2020)
  *
  */
 
@@ -238,7 +241,6 @@ void Oxs_ExchangeAndDMI_T_12ngbrs::GetEnergy(const Oxs_SimState &state,
           OC_REAL8m dmz_dx = 0.0, dmy_dx = 0.0;
           ThreeVector d2mx_dx2(0.0, 0.0, 0.0);
 
-          // NEW:
           OC_INDEX M2 = nn_neighbors[6 * i];
           OC_INDEX M1 = n_neighbors[6 * i];
           OC_INDEX P1 = n_neighbors[6 * i + 1];

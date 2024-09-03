@@ -1,10 +1,10 @@
-/* FILE: ExchangeAndDMI_T_BCs.cc
+/* FILE: exchange_dmi_t_12ngbrs.h
  *
  * Exchange and Dzyaloshinskii-Moriya field and energy calculation.
  *
  * DMI is defined for the T crystallographic class [1, 2]:
  *
- * $w_\text{dmi} = D ( L_{xz}^{(x)} + L_{yz}^{(y)} )
+ * $w_\text{dmi} = D ( L_{xz}^{(y)} + L_{zy}^{(x)} + L_{yx}^{(z)} )
  *
  * This extension works both with and without periodic boundary conditions.
  *
@@ -13,10 +13,6 @@
  * With DMI present in the material, the boundary conditions of exchange
  * are coupled to those of the DMI, if we exclude surface anisotropies.
  *
- * The field calculation of the DMI follows the discrete spin theory form
- * which uses a DMI vector, simplifying the description of the field
- * in the finite-difference approximation
- *
  * Extension and modification by David Cortes-Ortuno based on the
  * oommf-extension-dmi-cnv class by the joommf project
  *
@@ -24,6 +20,7 @@
  * (1989).
  * [2] C. Abert. Micromagnetics and spintronics: models and numerical methods.
  * The European Physical Journal B. 92 (120). 2019.
+ * [3] Ado et al. PRB 101, 161403(R) (2020)
  */
 
 #ifndef _OXS_EXCHDMI_T_12NGBRS
