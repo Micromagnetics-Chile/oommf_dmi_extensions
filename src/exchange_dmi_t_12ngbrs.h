@@ -8,7 +8,7 @@
  *
  * This extension works both with and without periodic boundary conditions.
  *
- * Optional are Neumann boundary conditions at the atlas boundary and at
+ * Optional are Robin boundary conditions at the atlas boundary and at
  * material boundaries defined by the region interfaces in the atlas.
  * With DMI present in the material, the boundary conditions of exchange
  * are coupled to those of the DMI, if we exclude surface anisotropies.

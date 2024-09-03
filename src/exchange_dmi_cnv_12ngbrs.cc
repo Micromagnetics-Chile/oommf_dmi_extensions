@@ -348,8 +348,6 @@ void Oxs_ExchangeAndDMI_Cnv_12ngbrs::GetEnergy(const Oxs_SimState &state,
         // NOTE: Neumann conditions are implicit in the exchange formulation if
         // ther eis no DMI
 
-        // If the system has less than 5 sites, use 6-ngbr stencil (2nd order
-        // finite diff)
         if (zdim > 1) {
 
           ThreeVector d2mz_dz2(0.0, 0.0, 0.0);

@@ -160,6 +160,30 @@ Oxs_ExchangeAndDMI_Cnv_12ngbrs_RobinBC::Oxs_ExchangeAndDMI_Cnv_12ngbrs_RobinBC(
   // }
   //
 
+  // Definition of inverse D matrices for the estimation of spins exactly at the sample edges
+  OC_REAL8m Df, dfactor;
+
+  Df = 0.5 * deltaY * D / Aex;
+  dfactor = 1. / (64. + 9 * Df * Df);
+  DInv_minusY_Row1.Set(3 / 8, 0., 0.);
+  DInv_minusY_Row2.Set(0, 24 * dfactor, -9. * dfactor * Df);
+  DInv_minusY_Row3.Set(0., 9 * dfactor * Df, 24 * dfactor);
+  //
+  DInv_plusY_Row1.Set(-3 / 8, 0., 0.);
+  DInv_plusY_Row2.Set(0, -24 * dfactor, -9. * dfactor * Df);
+  DInv_plusY_Row3.Set(0., 9 * dfactor * Df, -24 * dfactor);
+
+
+  Df = 0.5 * deltaX * D / Aex;
+  dfactor = 1. / (64. + 9 * Df * Df);
+  DInv_minusX_Row1.Set(24. * dfactor, 0., -9 * Df * dfactor); 
+  DInv_minusX_Row2.Set(0, 3. / 8, 0);                         
+  DInv_minusX_Row3.Set(9 * Df * dfactor, 0., 24 * dfactor);   
+  //
+  DInv_plusX_Row1.Set(-24. * dfactor, 0., -9 * Df * dfactor); 
+  DInv_plusX_Row2.Set(0, -3. / 8, 0);                         
+  DInv_plusX_Row3.Set(9 * Df * dfactor, 0., -24 * dfactor);   
+
   VerifyAllInitArgsUsed();
 
 }
@@ -199,10 +223,8 @@ void Oxs_ExchangeAndDMI_Cnv_12ngbrs_RobinBC::GetEnergy(const Oxs_SimState &state
   ThreeVector ZeroVector(0., 0., 0.);
   ThreeVector SpinM2, SpinM1, SpinP1, SpinP2;
   // OC_REAL8m Dpair, Aexpair;
-  ThreeVector DmatrixInvRow1, DmatrixInvRow2, DmatrixInvRow3;
   ThreeVector spinBdryTmp;
   ThreeVector spinBdry;
-  OC_REAL8m Df, dfactor;
 
   for (OC_INDEX z = 0; z < zdim; z++) {
     for (OC_INDEX y = 0; y < ydim; y++) {
@@ -249,21 +271,15 @@ void Oxs_ExchangeAndDMI_Cnv_12ngbrs_RobinBC::GetEnergy(const Oxs_SimState &state
           // if (neumannBC) {
           // }
 
-            // bottom boundary: n = -y
+          // bottom boundary: n = -y
           if ((Msi_M1 == 0.0) || (Msi_M1 != 0.0 && Msi_M2 == 0.0)) {
-              Df = 0.5 * deltaY * D / Aex;
-              dfactor = 1. / (64. + 9 * Df * Df);
-              DmatrixInvRow1.Set(3 / 8, 0., 0.);
-              DmatrixInvRow2.Set(0, 24 * dfactor, -9. * dfactor * Df);
-              DmatrixInvRow3.Set(0., 9 * dfactor * Df, 24 * dfactor);
-
               // Calculation of spinBdry using matrix with DMI boundary condition:
               spinBdryTmp = 3. * spin[i] + (-1. / 3.) * SpinP1;
               // For two ThreeVector objects, * makes a dot product
               // See: app/oxs/base/threevector.h line 202
-              spinBdry = ThreeVector(DmatrixInvRow1 * spinBdryTmp,
-                                     DmatrixInvRow2 * spinBdryTmp,
-                                     DmatrixInvRow3 * spinBdryTmp);
+              spinBdry = ThreeVector(DInv_minusY_Row1 * spinBdryTmp,
+                                     DInv_minusY_Row2 * spinBdryTmp,
+                                     DInv_minusY_Row3 * spinBdryTmp);
               spinBdry.MakeUnit();
 
               if (Msi_M1 == 0.0) {
@@ -277,19 +293,13 @@ void Oxs_ExchangeAndDMI_Cnv_12ngbrs_RobinBC::GetEnergy(const Oxs_SimState &state
                 d2my_dy2 = wgty * wgty * (SpinM1 - 2 * spin[i] + SpinP1);
               }
 
-            // top boundary: n = +y
+          // top boundary: n = +y
           } else if ((Msi_P1 == 0.0) || (Msi_P1 != 0.0 && Msi_P2 == 0.0)) {
-              Df = 0.5 * deltaY * D / Aex;
-              dfactor = 1. / (64. + 9 * Df * Df);
-              DmatrixInvRow1.Set(-3 / 8, 0., 0.);
-              DmatrixInvRow2.Set(0, -24 * dfactor, -9. * dfactor * Df);
-              DmatrixInvRow3.Set(0., 9 * dfactor * Df, -24 * dfactor);
-
               // Calculation of spinBdry using matrix with DMI boundary condition:
               spinBdryTmp = -3. * spin[i] + (1. / 3.) * SpinM1;
-              spinBdry = ThreeVector(DmatrixInvRow1 * spinBdryTmp,
-                                     DmatrixInvRow2 * spinBdryTmp,
-                                     DmatrixInvRow3 * spinBdryTmp);
+              spinBdry = ThreeVector(DInv_plusY_Row1 * spinBdryTmp,
+                                     DInv_plusY_Row2 * spinBdryTmp,
+                                     DInv_plusY_Row3 * spinBdryTmp);
               spinBdry.MakeUnit();
 
               // printf("Site i = %d  spin boundary x = %.5f  y = %.5f  z = %.5f \n", i, spinBdry.x, spinBdry.y, spinBdry.z);
@@ -354,19 +364,13 @@ void Oxs_ExchangeAndDMI_Cnv_12ngbrs_RobinBC::GetEnergy(const Oxs_SimState &state
 
 
           if ((Msi_M1 == 0.0) || (Msi_M1 != 0.0 && Msi_M2 == 0.0)) {
-              Df = 0.5 * deltaX * D / Aex;
-              dfactor = 1. / (64. + 9 * Df * Df);
-              DmatrixInvRow1.Set(24. * dfactor, 0., -9 * Df * dfactor);
-              DmatrixInvRow2.Set(0, 3. / 8, 0);
-              DmatrixInvRow3.Set(9 * Df * dfactor, 0., 24 * dfactor);
-
               // Calculation of spinBdry using matrix with DMI boundary condition:
               spinBdryTmp = 3. * spin[i] + (-1. / 3.) * SpinP1;
               // For two ThreeVector objects, * makes a dot product
               // See: app/oxs/base/threevector.h line 202
-              spinBdry = ThreeVector(DmatrixInvRow1 * spinBdryTmp,
-                                     DmatrixInvRow2 * spinBdryTmp,
-                                     DmatrixInvRow3 * spinBdryTmp);
+              spinBdry = ThreeVector(DInv_minusX_Row1 * spinBdryTmp,
+                                     DInv_minusX_Row2 * spinBdryTmp,
+                                     DInv_minusX_Row3 * spinBdryTmp);
               spinBdry.MakeUnit();
 
               // printf("Site i = %d  spin boundary x = %.5f  y = %.5f  z = %.5f \n", i, spinBdry.x, spinBdry.y, spinBdry.z);
@@ -384,17 +388,11 @@ void Oxs_ExchangeAndDMI_Cnv_12ngbrs_RobinBC::GetEnergy(const Oxs_SimState &state
 
             // right boundary
           } else if ((Msi_P1 == 0.0) || (Msi_P1 != 0.0 && Msi_P2 == 0.0)) {
-              Df = 0.5 * deltaX * D / Aex;
-              dfactor = 1. / (64. + 9 * Df * Df);
-              DmatrixInvRow1.Set(-24. * dfactor, 0., -9 * Df * dfactor);
-              DmatrixInvRow2.Set(0, -3. / 8, 0);
-              DmatrixInvRow3.Set(9 * Df * dfactor, 0., -24 * dfactor);
-
               // Calculation of spinBdry using matrix with DMI boundary condition:
               spinBdryTmp = -3. * spin[i] + (1. / 3.) * SpinM1;
-              spinBdry = ThreeVector(DmatrixInvRow1 * spinBdryTmp,
-                                     DmatrixInvRow2 * spinBdryTmp,
-                                     DmatrixInvRow3 * spinBdryTmp);
+              spinBdry = ThreeVector(DInv_plusX_Row1 * spinBdryTmp,
+                                     DInv_plusX_Row2 * spinBdryTmp,
+                                     DInv_plusX_Row3 * spinBdryTmp);
               spinBdry.MakeUnit();
 
               // printf("Site i = %d  spin boundary x = %.5f  y = %.5f  z = %.5f \n", i, spinBdry.x, spinBdry.y, spinBdry.z);

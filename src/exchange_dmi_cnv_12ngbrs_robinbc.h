@@ -72,6 +72,11 @@ private:
   std::vector<OC_INDEX> n_neighbors;
   std::vector<OC_INDEX> nn_neighbors;
 
+  ThreeVector DInv_plusY_Row1, DInv_plusY_Row2, DInv_plusY_Row3;
+  ThreeVector DInv_minusY_Row1, DInv_minusY_Row2, DInv_minusY_Row3;
+  ThreeVector DInv_plusX_Row1, DInv_plusX_Row2, DInv_plusX_Row3;
+  ThreeVector DInv_minusX_Row1, DInv_minusX_Row2, DInv_minusX_Row3;
+
 protected:
   virtual void GetEnergy(const Oxs_SimState &state, Oxs_EnergyData &oed) const;
 

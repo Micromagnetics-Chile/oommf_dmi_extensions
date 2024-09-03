@@ -180,7 +180,7 @@ void Oxs_ExchangeAndDMI_T_12ngbrs::GetEnergy(const Oxs_SimState &state,
     for (OC_INDEX y = 0; y < ydim; y++) {
       for (OC_INDEX x = 0; x < xdim; x++) {
 
-        OC_INDEX i = mesh->Index(x, y, z); // Get base linear address
+        OC_INDEX i = GetIndex(x, y, z, xdim, ydim, zdim, xperiodic, yperiodic, zperiodic); // Get base linear address
         ThreeVector base = spin[i];
         ThreeVector spinNgbr(0., 0., 0.);
         ThreeVector zu(0., 0., 1.);
