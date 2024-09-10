@@ -68,11 +68,15 @@ private:
   mutable OC_INDEX xydim;
   mutable OC_INDEX xyzdim;
 
+  // Array with neighbors. Size should be: 6 * mesh size
+  std::vector<OC_INDEX> n_neighbors;
+  std::vector<OC_INDEX> nn_neighbors;
+
+  ThreeVector DInv_plusX_Row1, DInv_plusX_Row2, DInv_plusX_Row3;
+  ThreeVector DInv_minusX_Row1, DInv_minusX_Row2, DInv_minusX_Row3;
   ThreeVector DInv_plusY_Row1, DInv_plusY_Row2, DInv_plusY_Row3;
   ThreeVector DInv_minusY_Row1, DInv_minusY_Row2, DInv_minusY_Row3;
-  ThreeVector DInv_plusX_Row1, DInv_plusX_Row2, DInv_plusX_Row3;
-  ThreeVector DInv_plusX_Row1, DInv_plusX_Row2, DInv_plusX_Row3;
-  ThreeVector DInv_minusZ_Row1, DInv_minusZ_Row2, DInv_minusZ_Row3;
+  ThreeVector DInv_plusZ_Row1, DInv_plusZ_Row2, DInv_plusZ_Row3;
   ThreeVector DInv_minusZ_Row1, DInv_minusZ_Row2, DInv_minusZ_Row3;
 
 protected:

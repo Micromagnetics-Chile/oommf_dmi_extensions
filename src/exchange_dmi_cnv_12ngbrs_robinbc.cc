@@ -127,10 +127,6 @@ Oxs_ExchangeAndDMI_Cnv_12ngbrs_RobinBC::Oxs_ExchangeAndDMI_Cnv_12ngbrs_RobinBC(
     throw Oxs_ExtError(this, msg.c_str());
   }
 
-  printf("mesh size = %d \n", size);
-  printf("mesh dx = %d \n", mesh->DimX());
-  printf("mesh dy = %d \n", mesh->DimY());
-  printf("mesh dz = %d \n", mesh->DimZ());
   // Assign mesh dimensions in class variables:
   xdim = mesh->DimX();
   ydim = mesh->DimY();

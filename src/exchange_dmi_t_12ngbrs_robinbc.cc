@@ -118,10 +118,6 @@ Oxs_ExchangeAndDMI_T_12ngbrs_RobinBC::Oxs_ExchangeAndDMI_T_12ngbrs_RobinBC(
     throw Oxs_ExtError(this, msg.c_str());
   }
 
-  printf("mesh size = %d \n", size);
-  printf("mesh dx = %d \n", mesh->DimX());
-  printf("mesh dy = %d \n", mesh->DimY());
-  printf("mesh dz = %d \n", mesh->DimZ());
   // Assign mesh dimensions in class variables:
   xdim = mesh->DimX();
   ydim = mesh->DimY();
@@ -143,6 +139,8 @@ Oxs_ExchangeAndDMI_T_12ngbrs_RobinBC::Oxs_ExchangeAndDMI_T_12ngbrs_RobinBC(
   ComputeNeighbors(n_neighbors, nn_neighbors, xdim, ydim, zdim, xperiodic, yperiodic, zperiodic);
 
   // Calculation of inverse D matrix to compute an estimation of the spins at the sample edges
+  OC_REAL8m Df, dfactor;
+
   Df = 0.5 * deltaX * D / Aex;
   dfactor = 1. / (64. + 9 * Df * Df);
   DInv_minusX_Row1.Set(3 / 8, 0., 0.); 
@@ -159,9 +157,9 @@ Oxs_ExchangeAndDMI_T_12ngbrs_RobinBC::Oxs_ExchangeAndDMI_T_12ngbrs_RobinBC(
   DInv_minusY_Row2.Set(0, 3/ 8, 0);
   DInv_minusY_Row3.Set(9 * Df * dfactor, 0, 24 * dfactor);
   //
-  DInv_plusY_Row1.Set(-24 * dfactor, 0, -9 * Df * dfactor); 
+  DInv_plusY_Row1.Set(-24 * dfactor, 0, -9 * Df * dfactor);
   DInv_plusY_Row2.Set(0, -3/ 8, 0);
-  DInv_plusY_Row3.Set(9 * Df * dfactor, 0, -24 * dfactor);  .Set();
+  DInv_plusY_Row3.Set(9 * Df * dfactor, 0, -24 * dfactor);
 
   Df = 0.5 * deltaZ * D / Aex;
   dfactor = 1. / (64. + 9 * Df * Df);
@@ -217,7 +215,7 @@ void Oxs_ExchangeAndDMI_T_12ngbrs_RobinBC::GetEnergy(const Oxs_SimState &state,
     for (OC_INDEX y = 0; y < ydim; y++) {
       for (OC_INDEX x = 0; x < xdim; x++) {
 
-        OC_INDEX i = mesh->Index(x, y, z); // Get base linear address
+        OC_INDEX i = GetIndex(x, y, z, xdim, ydim, zdim, xperiodic, yperiodic, zperiodic); // Get base linear address
         ThreeVector base = spin[i];
         ThreeVector spinNgbr(0., 0., 0.);
         ThreeVector zu(0., 0., 1.);
@@ -265,11 +263,11 @@ void Oxs_ExchangeAndDMI_T_12ngbrs_RobinBC::GetEnergy(const Oxs_SimState &state,
               if (Msi_M1 == 0.0) {
                 // NOTE: we can also use dm_dy and then use dm_dy.z, for example
                 dmz_dy = wgty * (1 / 3.) * (-4. * spinBdry.z + 3. * spin[i].z + SpinP1.z);
-                dmy_dy = wgty * (1 / 3.) * (-4. * spinBdry.y + 3. * spin[i].y + SpinP1.y);
+                dmx_dy = wgty * (1 / 3.) * (-4. * spinBdry.x + 3. * spin[i].x + SpinP1.x);
                 d2my_dy2 = wgty * wgty * (1. / 3) * (8. * spinBdry - 12. * spin[i] + 4. * SpinP1);
               } else {
                 dmz_dy = wgty * (1 / 6.) * (-2 * SpinM1.z - 3. * spin[i].z + 6. * SpinP1.z - SpinP2.z);
-                dmy_dy = wgty * (1 / 6.) * (-2 * SpinM1.y - 3. * spin[i].y + 6. * SpinP1.y - SpinP2.y);
+                dmx_dy = wgty * (1 / 6.) * (-2 * SpinM1.x - 3. * spin[i].x + 6. * SpinP1.x - SpinP2.x);
                 d2my_dy2 = wgty * wgty * (SpinM1 - 2 * spin[i] + SpinP1);
               }
 

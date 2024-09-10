@@ -65,6 +65,11 @@ private:
   mutable OC_INDEX xydim;
   mutable OC_INDEX xyzdim;
 
+  // Array with neighbors. Size should be: 6 * mesh size
+  std::vector<OC_INDEX> n_neighbors;
+  std::vector<OC_INDEX> nn_neighbors;
+
+
 protected:
   virtual void GetEnergy(const Oxs_SimState &state, Oxs_EnergyData &oed) const;
 
