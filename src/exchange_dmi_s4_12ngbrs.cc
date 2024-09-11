@@ -22,7 +22,7 @@
 #include "atlas.h"
 #include "director.h"
 #include "energy.h" // Needed to make MSVC++ 5 happy
-#include "exchange_dmi_cn_12ngbrs.h"
+#include "exchange_dmi_s4_12ngbrs.h"
 #include "key.h"
 #include "mesh.h"
 #include "meshvalue.h"

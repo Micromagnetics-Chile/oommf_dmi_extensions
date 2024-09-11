@@ -173,19 +173,6 @@ void Oxs_ExchangeAndDMI_D2d_12ngbrs::GetEnergy(const Oxs_SimState &state,
 
   // --------------------------------------------------------------------------
 
-  OC_INDEX xdim = mesh->DimX();
-  OC_INDEX ydim = mesh->DimY();
-  OC_INDEX zdim = mesh->DimZ();
-  OC_INDEX xydim = xdim * ydim;
-  OC_INDEX xyzdim = xdim * ydim * zdim;
-
-  OC_REAL8m wgtx = 1.0 / (mesh->EdgeLengthX());
-  OC_REAL8m wgty = 1.0 / (mesh->EdgeLengthY());
-  OC_REAL8m wgtz = 1.0 / (mesh->EdgeLengthZ());
-  OC_REAL8m deltaX = mesh->EdgeLengthX();
-  OC_REAL8m deltaY = mesh->EdgeLengthY();
-  OC_REAL8m deltaZ = mesh->EdgeLengthZ();
-
   OC_REAL8m mu0Inv = 1 / MU0;
   OC_REAL8m fdsign = 1.;
   ThreeVector ZeroVector(0., 0., 0.);
