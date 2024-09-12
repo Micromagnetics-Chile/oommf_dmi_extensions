@@ -1,27 +1,20 @@
-/* FILE: ExchangeAndDMI_d2d_12ngbrs.cc
+/* FILE: exchange_dmi_cn_12ngbrs.cc
  *
  * Exchange and Dzyaloshinskii-Moriya field and energy calculation.
  *
- * DMI is defined for the D2d crystallographic class [1, 2]:
+ * DMI is defined for the S4 crystallographic class [1, 2]:
  *
- * $w_\text{dmi} = D ( L_{xz}^{(y)} + L_{yz}^{(x)} )
+ * $w_\text{dmi} = D1 ( L_{zx}^{(x)} + L_{yz}^{(y)} ) + D2 ( L_{yz}^{(x)} - L_{zx}^{(y)} )
  *
- * The calculation uses a 5-point stencil for both 1st and 2nd order
- * derivatives of m, making a total of 12 neighbours per mesh site.
- * This implementation uses free boundaries, where spins
- * outside the material are set to zero. No information of the boundary
- * condition is given to the system, thus boundary spins are free to find
- * the lowest energy configuration. This leads to the true
- * bcs, although with larger error compared to setting the bcs explicitly.
+ * Note that this has the opposite sign than in [2].
+ *
+ * This extension works both with and without periodic boundary conditions.
  *
  * Extension and modification by David Cortes-Ortuno based on the
- * oommf-extension-dmi-cnv class by the ubermag project
+ * oommf-extension-dmi-cnv class by the joommf project
  *
- * [1] A. N. Bogdanov and D. A. Yablonskii. Zh. Eksp. Teor. Fiz. 95, 178-182
- * (1989).
- * [2] C. Abert. Micromagnetics and spintronics: models and numerical methods.
- * The European Physical Journal B. 92 (120). 2019.
- *
+ * [1] A. N. Bogdanov and D. A. Yablonskii. Zh. Eksp. Teor. Fiz. 95, 178-182 (1989).
+ * [2] Ado et al. PRB 101, 161403(R) (2020)
  */
 
 #include <string>
@@ -29,7 +22,7 @@
 #include "atlas.h"
 #include "director.h"
 #include "energy.h" // Needed to make MSVC++ 5 happy
-#include "exchange_dmi_d2d_12ngbrs.h"
+#include "exchange_dmi_s4_12ngbrs.h"
 #include "key.h"
 #include "mesh.h"
 #include "meshvalue.h"
@@ -41,17 +34,17 @@
 OC_USE_STRING;
 
 // Oxs_Ext registration support
-OXS_EXT_REGISTER(Oxs_ExchangeAndDMI_D2d_12ngbrs);
+OXS_EXT_REGISTER(Oxs_ExchangeAndDMI_S4_12ngbrs);
 
 /* End includes */
 
 // Constructor
-Oxs_ExchangeAndDMI_D2d_12ngbrs::Oxs_ExchangeAndDMI_D2d_12ngbrs(
+Oxs_ExchangeAndDMI_S4_12ngbrs::Oxs_ExchangeAndDMI_S4_12ngbrs(
     const char *name,     // Child instance id
     Oxs_Director *newdtr, // App director
     const char *argstr)   // MIF input block parameters
-    : Oxs_Energy(name, newdtr, argstr), A_size(0), D(0), Aex(0), xperiodic(0),
-      yperiodic(0), zperiodic(0), mesh_id(0) {
+    : Oxs_Energy(name, newdtr, argstr), A_size(0), D1(0), D2(0), Aex(0),
+      xperiodic(0), yperiodic(0), zperiodic(0), mesh_id(0) {
   // Process arguments
   OXS_GET_INIT_EXT_OBJECT("atlas", Oxs_Atlas, atlas);
   atlaskey.Set(atlas.GetPtr());
@@ -76,11 +69,18 @@ Oxs_ExchangeAndDMI_D2d_12ngbrs::Oxs_ExchangeAndDMI_D2d_12ngbrs(
     throw Oxs_Ext::Error(msg.c_str());
   }
 
-  OC_BOOL has = HasInitValue("D");
+  OC_BOOL has = HasInitValue("D1");
   if (!has) {
-    throw Oxs_ExtError(this, "DMI value D not specified");
+    throw Oxs_ExtError(this, "DMI value D1 not specified");
   } else {
-    D = GetRealInitValue("D");
+    D1 = GetRealInitValue("D1");
+  }
+
+  has = HasInitValue("D2");
+  if (!has) {
+    throw Oxs_ExtError(this, "DMI value D2 not specified");
+  } else {
+    D2 = GetRealInitValue("D2");
   }
 
   has = HasInitValue("Aex");
@@ -150,17 +150,23 @@ Oxs_ExchangeAndDMI_D2d_12ngbrs::Oxs_ExchangeAndDMI_D2d_12ngbrs(
   VerifyAllInitArgsUsed();
 }
 
-Oxs_ExchangeAndDMI_D2d_12ngbrs::~Oxs_ExchangeAndDMI_D2d_12ngbrs() {
+Oxs_ExchangeAndDMI_S4_12ngbrs::~Oxs_ExchangeAndDMI_S4_12ngbrs() {
+  // if (A_size > 0 && D != NULL && Aex != NULL) {
+  //   delete[] D[0];
+  //   delete[] D;
+  //   delete[] Aex[0];
+  //   delete[] Aex;
+  // }
 }
 
-OC_BOOL Oxs_ExchangeAndDMI_D2d_12ngbrs::Init() {
+OC_BOOL Oxs_ExchangeAndDMI_S4_12ngbrs::Init() {
   mesh_id = 0;
   region_id.Release();
   return Oxs_Energy::Init();
 }
 
-void Oxs_ExchangeAndDMI_D2d_12ngbrs::GetEnergy(const Oxs_SimState &state,
-                                               Oxs_EnergyData &oed) const {
+void Oxs_ExchangeAndDMI_S4_12ngbrs::GetEnergy(const Oxs_SimState &state,
+                                              Oxs_EnergyData &oed) const {
 
   const Oxs_MeshValue<ThreeVector> &spin = state.spin;
   const Oxs_MeshValue<OC_REAL8m> &Ms_inverse = *(state.Ms_inverse);
@@ -200,10 +206,9 @@ void Oxs_ExchangeAndDMI_D2d_12ngbrs::GetEnergy(const Oxs_SimState &state,
 
         if (ydim > 4) {
 
-          OC_REAL8m dmz_dy, dmx_dy;
-          ThreeVector d2my_dy2;
+          OC_REAL8m dmz_dy, dmy_dy, dmx_dy;
+          ThreeVector d2my_dy2(0.0, 0.0, 0.0);
 
-          // NEW:
           OC_INDEX M2 = nn_neighbors[6 * i + 2];
           OC_INDEX M1 = n_neighbors[6 * i + 2];
           OC_INDEX P1 = n_neighbors[6 * i + 3];
@@ -219,29 +224,32 @@ void Oxs_ExchangeAndDMI_D2d_12ngbrs::GetEnergy(const Oxs_SimState &state,
           SpinP1 = (P1 < 0 || Msi_P1 == 0.0) ? ZeroVector : spin[P1];
           SpinP2 = (P2 < 0 || Msi_P2 == 0.0) ? ZeroVector : spin[P2];
 
+
           // If there is no material in the nearest neighbor (single spin hole), use 3-point stencil
           if ((Msi_M1 == 0.0 && Msi_M2 != 0.0) || (Msi_P1 == 0.0 && Msi_P2 != 0.0)) {
-            dmz_dy = wgty * 0.5 * (SpinP1.z - SpinM1.z);
             dmx_dy = wgty * 0.5 * (SpinP1.x - SpinM1.x);
+            dmy_dy = wgty * 0.5 * (SpinP1.y - SpinM1.y);
+            dmz_dy = wgty * 0.5 * (SpinP1.z - SpinM1.z);
             d2my_dy2 = wgty * wgty * (SpinP1 - 2. * spin[i] + SpinM1);
           } else {
-            dmz_dy = wgty * (1. / 12) * (SpinM2.z - 8. * SpinM1.z + 8. * SpinP1.z - SpinP2.z);
             dmx_dy = wgty * (1. / 12) * (SpinM2.x - 8. * SpinM1.x + 8. * SpinP1.x - SpinP2.x);
+            dmy_dy = wgty * (1. / 12) * (SpinM2.y - 8. * SpinM1.y + 8. * SpinP1.y - SpinP2.y);
+            dmz_dy = wgty * (1. / 12) * (SpinM2.z - 8. * SpinM1.z + 8. * SpinP1.z - SpinP2.z);
             d2my_dy2 = wgty * wgty * (1. / 12) * (-1. * SpinM2 + 16. * SpinM1 - 30. * spin[i] + 16. * SpinP1 - 1. * SpinP2);
           }
 
           sum += 2.0 * Aex * d2my_dy2;
           // DMI field
-          sum.x += -2 * D * (dmz_dy);
-          sum.z += -2 * D * (-dmx_dy);
+          sum.x += -2 * (D2 * dmz_dy);
+          sum.y += 2 * (D1 * dmz_dy);
+          sum.z += -2 * (D1 * dmy_dy - D2 * dmx_dy);
         }
 
         if (xdim > 4) {
 
-          OC_REAL8m dmz_dx = 0.0, dmy_dx = 0.0;
+          OC_REAL8m dmz_dx, dmx_dx, dmy_dx;
           ThreeVector d2mx_dx2(0.0, 0.0, 0.0);
 
-          // NEW:
           OC_INDEX M2 = nn_neighbors[6 * i];
           OC_INDEX M1 = n_neighbors[6 * i];
           OC_INDEX P1 = n_neighbors[6 * i + 1];
@@ -257,21 +265,31 @@ void Oxs_ExchangeAndDMI_D2d_12ngbrs::GetEnergy(const Oxs_SimState &state,
           SpinP1 = (Msi_P1 == 0.0) ? ZeroVector : spin[P1];
           SpinP2 = (Msi_P2 == 0.0) ? ZeroVector : spin[P2];
 
+          // If there is no material in the nearest neighbor, use 3-point stencil
           if ((Msi_M1 == 0.0 && Msi_M2 != 0.0) || (Msi_P1 == 0.0 && Msi_P2 != 0.0)) {
-            dmz_dx = wgtx * 0.5 * (SpinP1.z - SpinM1.z);
+            dmx_dx = wgtx * 0.5 * (SpinP1.x - SpinM1.x);
             dmy_dx = wgtx * 0.5 * (SpinP1.y - SpinM1.y);
+            dmz_dx = wgtx * 0.5 * (SpinP1.z - SpinM1.z);
             d2mx_dx2 = wgtx * wgtx * (SpinP1 - 2. * spin[i] + SpinM1);
           } else {
-            // printf("5 point -- Spin i = %d  MsiM2 = %.10f  MsiM1 = %.10f  MsiP1 = %.10f  MsiP2 = %.10f \n", i, Msi_M2, Msi_M1, Msi_P1, Msi_P2);
-            dmz_dx = wgtx * (1. / 12) * (SpinM2.z - 8. * SpinM1.z + 8. * SpinP1.z - SpinP2.z);
+            dmx_dx = wgtx * (1. / 12) * (SpinM2.x - 8. * SpinM1.x + 8. * SpinP1.x - SpinP2.x);
             dmy_dx = wgtx * (1. / 12) * (SpinM2.y - 8. * SpinM1.y + 8. * SpinP1.y - SpinP2.y);
+            dmz_dx = wgtx * (1. / 12) * (SpinM2.z - 8. * SpinM1.z + 8. * SpinP1.z - SpinP2.z);
             d2mx_dx2 = wgtx * wgtx * (1. / 12) * (-1. * SpinM2 + 16. * SpinM1 - 30. * spin[i] + 16. * SpinP1 - 1. * SpinP2);
           }
 
+          // dmz_dx = wgtx * ((1. / 12) * SpinM2.z - (8. / 12) * SpinM1.z +
+          //                  (8. / 12) * SpinP1.z - (1. / 12) * SpinP2.z);
+          // dmx_dx = wgtx * ((1. / 12) * SpinM2.x - (8. / 12) * SpinM1.x +
+          //                  (8. / 12) * SpinP1.x - (1. / 12) * SpinP2.x);
+          // dmy_dx = wgtx * ((1. / 12) * SpinM2.y - (8. / 12) * SpinM1.y +
+          //                  (8. / 12) * SpinP1.y - (1. / 12) * SpinP2.y);
+
           sum += 2.0 * Aex * d2mx_dx2;
           // DMI field
-          sum.y += -2 * D * (dmz_dx);
-          sum.z += -2 * D * (-dmy_dx);
+          sum.x += -2 * (D1 * dmz_dx);
+          sum.y += -2 * (D2 * dmz_dx);
+          sum.z += 2 * (D1 * dmx_dx + D2 * dmy_dx);
         }
 
         if (zdim > 1) {
@@ -293,7 +311,6 @@ void Oxs_ExchangeAndDMI_D2d_12ngbrs::GetEnergy(const Oxs_SimState &state,
           SpinM1 = (Msi_M1 == 0.0) ? ZeroVector : spin[M1];
           SpinP1 = (Msi_P1 == 0.0) ? ZeroVector : spin[P1];
           SpinP2 = (Msi_P2 == 0.0) ? ZeroVector : spin[P2];
-
 
           // If layer is thin in z, or there is no material in the nearest neighbor, use 3-point stencil
           // NOTE: we have to be careful with the Neumann condition if there is only exchange; in this
