@@ -144,12 +144,12 @@ Oxs_ExchangeAndDMI_T_12ngbrs_RobinBC::Oxs_ExchangeAndDMI_T_12ngbrs_RobinBC(
   Df = 0.5 * deltaX * D / Aex;
   dfactor = 1. / (64. + 9 * Df * Df);
   DInv_minusX_Row1.Set(3 / 8, 0., 0.); 
-  DInv_minusX_Row2.Set(0., 24 * dfactor, -9 * Df * dfactor);
-  DInv_minusX_Row3.Set(0., 9 * Df * dfactor, 24 * dfactor);
+  DInv_minusX_Row2.Set(0., 24 * dfactor, 9 * Df * dfactor);
+  DInv_minusX_Row3.Set(0., -9 * Df * dfactor, 24 * dfactor);
   //
   DInv_plusX_Row1.Set(-3 / 8, 0., 0.);
-  DInv_plusX_Row2.Set(0., -24 * dfactor, -9 * Df * dfactor);
-  DInv_plusX_Row3.Set(0., 9 * Df * dfactor, -24 * dfactor);
+  DInv_plusX_Row2.Set(0., -24 * dfactor, 9 * Df * dfactor);
+  DInv_plusX_Row3.Set(0., -9 * Df * dfactor, -24 * dfactor);
 
   Df = 0.5 * deltaY * D / Aex;
   dfactor = 1. / (64. + 9 * Df * Df);
