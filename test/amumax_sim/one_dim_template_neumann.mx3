@@ -1,5 +1,5 @@
 Lx := 100e-9
-NXS := "{prefix=one_dim_NX;array=[500,400,250,200,150,100,90,80,70,60,50,40,30,20];suffix=;format=%.0f}"
+NXS := "{prefix=one_dim_neumann_NX;array=[500,400,250,200,150,100,90,80,70,60,50,40,30,20];suffix=;format=%.0f}"
 nx = NXS
 ny = 1
 nz = 1
@@ -16,6 +16,7 @@ Ku1          = 0.4e6
 anisU        = vector(0, 0, 1)
 Dind         = -3.0e-3
 NoDemagSpins = 1
+OpenBC       = false
 
 // Initial state
 m = uniform(0, 0, 1)

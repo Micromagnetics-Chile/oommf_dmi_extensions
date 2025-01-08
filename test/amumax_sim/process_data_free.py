@@ -8,17 +8,17 @@ import numpy as np
 
 
 magDataAMX = namedtuple('magDataAMX', ['mx', 'my', 'mz', 'x', 'n_x', 'h'])
-SAVEDIR = Path('amumax_1dchain_data')
+SAVEDIR = Path('amumax_1dchain_free_data')
 SAVEDIR.mkdir(exist_ok=True)
 
 # AmuMax version:
-MX3_NEUMANN_DIR = Path('./')
-MX3_NEUMANN_ZFILES = sorted(list(MX3_NEUMANN_DIR.glob('*zarr')))
+MX3_DIR = Path('./')
+MX3_ZFILES = sorted(list(MX3_DIR.glob('*free*zarr')))
 
 data_amx = {}
 
 # Neumann BCs
-for ZARR in MX3_NEUMANN_ZFILES:
+for ZARR in MX3_ZFILES:
     Zdata = zarr.open(ZARR, mode='r')
     Lx = Zdata.attrs['Lx']
     DX = Zdata.attrs['dx']

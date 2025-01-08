@@ -235,7 +235,7 @@ plt.savefig('N_vs_err-mz_OOMMF_stencils_TEST.pdf', bbox_inches='tight')
 from pathlib import Path
 import dill
 
-AMX_DIR = Path('amumax_sim/amumax_1dchain_data')
+AMX_DIR = Path('amumax_sim/amumax_1dchain_neumann_data/')
 
 # +
 amx_data = {}
@@ -293,7 +293,14 @@ for s in suffix_values:
             alpha=1.0, ms=4,
             label=f"OOMMF $m_z$ ({s})")
 
-ax.plot(amx_n_vs_error[:, 0], amx_n_vs_error[:, 1], '--ok', label='mumax', ms=4)
+ax.plot(amx_n_vs_error[:, 0], amx_n_vs_error[:, 1], '--ok', label='MuMax3 (6ngbrs RobinBC)', ms=4)
+
+# Scaling reference line
+# xN2 = np.linspace(20, 400, 200)
+# ax.plot(xN2, xN2**-2)
+
+xN3 = np.linspace(20, 500, 200)
+ax.plot(xN3, np.exp(3) * xN3**-3, '--', color='grey', lw=1, dashes=[6, 2])
 
 ax.legend()
 ax.set_xlabel('N')
@@ -303,7 +310,9 @@ ax.set_xscale('log')
 xts = [20 * i for i in range(1, 6)] + [200, 400]  # n values
 ax.set_xticks([x for x in xts])
 ax.set_xticklabels(['{:.0f}'.format(x) for x in xts])
-# ax.set_xticks([1., 4.])
+ax.set_ylim(0.5e-6, 0.2)
+
+ax.text(20, 0.5e-3, '$\propto N^{-3}$', color ='grey')
 
 hs = [100 / n for n in xts]
 ax2 = ax.secondary_xaxis('top')
@@ -314,6 +323,94 @@ ax2.set_xlabel('h  (nm)')
 plt.grid()
 
 plt.savefig('N_vs_err-mz_OOMMF_stencils_TEST.pdf', bbox_inches='tight')
+# -
+
+# # Masell model
+
+# +
+A = 13e-12
+D = 3e-3
+Ku = 0.4e6
+
+Q = D / (2 * A)
+kappa = Ku / (A * (Q**2))
+
+def y0_constant(kappa, h=0):
+    hk = 1. / np.sqrt(h + kappa)
+    y0 = -hk * np.arccosh((h + kappa + np.sqrt((h + kappa)**2 - kappa)) / np.sqrt(h))
+    return y0
+
+def theta_JM(yp, kappa, h=0):
+    y0p = y0_constant(kappa, h)
+    hk = np.sqrt(h / (h + kappa))
+    t = -np.pi + 2 * np.arctan(hk * np.sinh(np.sqrt(h + kappa) * (yp - y0p)))
+    return t
+
+
+# +
+# xRef = np.linspace(0., 25., 501) * 1e-9
+# thetaRef = theta_JM(xRef * Q, kappa, h=1e-15)
+# -
+
+theta_Boundary_MODEL = theta_JM(0. * Q, kappa, h=1e-20)
+
+# +
+# Compute mumax errors using M Model
+L = 50
+amx_n_vs_error_MM = []
+for k in sorted(amx_interp_data.keys()):
+    intFun = amx_interp_data[k]
+    
+    mzerr = np.abs(intFun(-L) - np.cos(theta_Boundary_MODEL))
+    amx_n_vs_error_MM.append([k, mzerr])
+
+amx_n_vs_error_MM = np.array(amx_n_vs_error_MM)
+
+# +
+f, ax = plt.subplots(figsize=(6, 6))
+
+for s in suffix_values:
+    sdata = [sol for sol in solutions if sol.suffix==s]
+    sdata = sorted(sdata, key=lambda x: x.n_x)
+    # print(sdata)
+    # print(sdata.sort(key=lambda x: x.n_x))
+    mzerr = [np.abs(d.mz_interp(-L) - np.cos(theta_Boundary_MODEL)) for d in sdata]
+    ns = np.array([d.n_x for d in sdata])
+    z = np.polyfit(np.log(ns), np.log(mzerr), 1)
+    print(s, z)
+    ax.plot(ns, mzerr,
+            "o-",
+            alpha=1.0, ms=4,
+            label=f"OOMMF $m_z$ ({s})")
+
+ax.plot(amx_n_vs_error_MM[:, 0], amx_n_vs_error_MM[:, 1], '--ok', label='MuMax3 (6ngbrs RobinBC)', ms=4)
+
+# Scaling reference line
+# xN2 = np.linspace(20, 400, 200)
+# ax.plot(xN2, xN2**-2)
+
+xN3 = np.linspace(20, 500, 200)
+ax.plot(xN3, np.exp(3) * xN3**-3, '--', color='grey', lw=1, dashes=[6, 2])
+
+ax.legend()
+ax.set_xlabel('N')
+ax.set_ylabel(r'log($|m_z - m_z^{\mathrm{an}}|$)  at x = -50 nm')
+ax.set_yscale('log')
+ax.set_xscale('log')
+xts = [20 * i for i in range(1, 6)] + [200, 400]  # n values
+ax.set_xticks([x for x in xts])
+ax.set_xticklabels(['{:.0f}'.format(x) for x in xts])
+ax.set_ylim(0.5e-6, 0.2)
+
+ax.text(20, 0.5e-3, '$\propto N^{-3}$', color ='grey')
+
+hs = [100 / n for n in xts]
+ax2 = ax.secondary_xaxis('top')
+ax2.set_xticks([x for x in xts])
+ax2.set_xticklabels(['{:.1f}'.format(h) for h in hs])
+ax2.set_xlabel('h  (nm)')
+
+plt.grid()
 # -
 
 

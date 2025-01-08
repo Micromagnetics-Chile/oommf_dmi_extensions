@@ -1,0 +1,34 @@
+Lx := 100e-9
+NXS := "{prefix=one_dim_free_NX;array=[500,400,250,200,150,100,90,80,70,60,50,40,30,20];suffix=;format=%.0f}"
+nx = NXS
+ny = 1
+nz = 1
+dx = (Lx / NXS)
+dy = 1e-09
+dz = 1e-09
+PBCx = 0
+PBCy = 0
+PBCz = 0
+
+Msat         = 0.86e6
+Aex          = 13.0e-12
+Ku1          = 0.4e6
+anisU        = vector(0, 0, 1)
+Dind         = -3.0e-3
+NoDemagSpins = 1
+OpenBC       = true
+
+// Initial state
+m = uniform(0, 0, 1)
+
+OutputFormat = OVF2_BINARY
+
+// Relax with specific torque:
+// alpha       = 0.9
+// RunWhile(MaxTorque > 1e-4)
+
+// Relax with conjugate gradient:
+minimize();
+// simname := sprintf("m_dx%02.0fA", DN)
+simname := sprintf("m")
+SaveAs(m, simname)
