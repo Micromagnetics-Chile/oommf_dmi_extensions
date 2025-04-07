@@ -47,9 +47,9 @@ M_s = 658e3     # saturation magnetization
 K_u = 0.25e6    # uniaxial anis
 
 D2 = 1.5e-3
-D1_max = 2.0e-3
-D1_min = 0.5e-3
-n_D = 4
+D1_max = 3.0e-3
+D1_min = 0.e-3
+n_D = 7
 D1_values = np.linspace(D1_min, D1_max, n_D)
 
 Bymax = 2.0
@@ -59,13 +59,15 @@ nB = int((Bymax - Bymin) / dBy)
 By_values = np.linspace(Bymax, Bymin, nB + 1)
 # -
 
-n_xy = 500
-mesh = df.Mesh(p1=(-500e-9, -500e-9, 0), p2=(500e-9, 500e-9, 1e-9), n=(n_xy, n_xy, 1))
-
 print(D1_values)
 
 # +
-# name_table = '2D_sample_Cn_datatable.txt'
+ROOT_DIR = Path(f'SIMS_output_D2_{D2*1e4:.0f}e-4_dx2nm')
+ROOT_DIR.mkdir(exist_ok=True)
+
+n_xy = 500
+mesh = df.Mesh(p1=(-500e-9, -500e-9, 0), p2=(500e-9, 500e-9, 1e-9), n=(n_xy, n_xy, 1))
+np.save(ROOT_DIR / 'sample_mesh_cells_X.npy', mesh.cells.x)
 
 mag_arr = []
 B_arr = []
@@ -84,13 +86,13 @@ for D1 in D1_values:
     md = oc.MinDriver()
 
     # SIM name
-    name = f'calc_12ngbs_Cn_D1_{D1*1e4:02.0f}e-4_D2_20e-4'
-    SAVEFIG = Path(f'{name}_figs')
+    name = f'sim_12ngbs_Cn_D1_{D1*1e4:02.0f}e-4_D2_{D2*1e4:.0f}e-4'
+    SAVEFIG = ROOT_DIR / Path(f'{name}_figs')
     SAVEFIG.mkdir(exist_ok=True)
-    SAVESP = Path(f'{name}_snaps')
+    SAVESP = ROOT_DIR / Path(f'{name}_snaps')
     SAVESP.mkdir(exist_ok=True)
 
-    F = open(f'table_{name}.txt', 'w')
+    F = open(ROOT_DIR / f'table_{name}.txt', 'w')
 
     for i, By in enumerate(By_values):
         system.energy.zeeman.H = (0, By / mm.consts.mu0, 0)
@@ -118,7 +120,5 @@ for D1 in D1_values:
 
     F.close()
 # -
-
-
 
 
