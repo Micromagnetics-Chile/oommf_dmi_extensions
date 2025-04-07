@@ -62,7 +62,7 @@ By_values = np.linspace(Bymax, Bymin, nB + 1)
 print(D1_values)
 
 # +
-ROOT_DIR = Path(f'SIMS_output_D2_{D2*1e4:.0f}e-4_dx2nm')
+ROOT_DIR = Path(f'SIMS_output_D2_{D2*1e4:.0f}eM4_dx2nm')
 ROOT_DIR.mkdir(exist_ok=True)
 
 n_xy = 500
@@ -74,8 +74,11 @@ B_arr = []
 
 for D1 in D1_values:
 
+    # SIM name
+    name = f'sim_12ngbs_Cn_D1_{D1*1e4:02.0f}eM4_D2_{D2*1e4:.0f}eM4'
+
     # Define the system
-    system = mm.System(name=f"sample_Cn")
+    system = mm.System(name=f'MIFS_output_D2_{D2*1e4:.0f}eM4_dx2nm')
     system.m = df.Field(mesh, nvdim=3, value=[0, 0, 1], norm=M_s)
     system.energy = (mm.Exchange(A=A) + 
                      mm.UniaxialAnisotropy(K=K_u, u=[0, 0, 1]) + 
@@ -85,8 +88,6 @@ for D1 in D1_values:
                      )
     md = oc.MinDriver()
 
-    # SIM name
-    name = f'sim_12ngbs_Cn_D1_{D1*1e4:02.0f}e-4_D2_{D2*1e4:.0f}e-4'
     SAVEFIG = ROOT_DIR / Path(f'{name}_figs')
     SAVEFIG.mkdir(exist_ok=True)
     SAVESP = ROOT_DIR / Path(f'{name}_snaps')
@@ -120,5 +121,4 @@ for D1 in D1_values:
 
     F.close()
 # -
-
 
