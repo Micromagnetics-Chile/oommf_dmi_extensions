@@ -71,10 +71,11 @@ The modules can be installed by copying the files in `src` into OOMMF's `app/oxs
 
 ## Tests
 
-
+In the `tests` directory is located a notebook analyzing the boundary condition of the Cnv class extesion, using different cell sizes and micromagnetic codes, for a 1D sample. Additional scripts include a skyrmion in a 2D sample, an OOMMF script for the Cn class, and field sweep calculations for a helix in a thin film with Cn class DMI. The latter is discussed in the paper associated to these extensions. 
 
 ## Citation
 
+We appreciate if you cite our OOMMF extensions in case you use them for your research:
 ```tex
 @Misc{OOMMFextensions,
   author       = {Cortés-Ortuño, David and Brevis, Felipe},
