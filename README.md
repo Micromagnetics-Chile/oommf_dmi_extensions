@@ -2,6 +2,10 @@
 
 # OOMMF DMI Extensions
 
+![](img/m_exchanges_diagram.png)
+
+---
+
 This repository contains code extensions for the micromagnetic package OOMMF, for the calculation of the symmetric exchange interaction, and the antisymmetric Dzyaloshinskii-Moriya interaction (DMI), using higher order finite difference schemes, and different kinds of DMIs. Mathematical details about these extensions are published in *Conical-helix magnetic textures stabilized in thin films with different kinds of
 Dzyaloshinskii-Moriya interaction*, by M. Cepeda-Arancibia et al. (2025)
 
