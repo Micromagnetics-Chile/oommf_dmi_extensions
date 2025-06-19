@@ -83,7 +83,7 @@ In the `tests` directory is located a notebook analyzing the boundary condition 
 We appreciate if you cite our OOMMF extensions in case you use them for your research:
 ```tex
 @Misc{OOMMFextensions,
-  author       = {Cortés-Ortuño, David and Brevis, Felipe},
+  author       = {Cortés-Ortuño, David and Brevis, Felipe and Cepeda-Arancibia, Mat\'ias and Holt, S. J. R. and Fangohr, Hans and Landeros, Pedro},
   title        = {{Micromagnetics Chile: oommf\_dmi\_extensions}},
   publisher    = {Zenodo},
   note         = {Github: \url{https://github.com/Micromagnetics-Chile/oommf_dmi_extensions}},
