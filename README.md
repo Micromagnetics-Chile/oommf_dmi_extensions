@@ -7,8 +7,7 @@
 
 ---
 
-This repository contains code extensions for the micromagnetic package OOMMF, for the calculation of the symmetric exchange interaction, and the antisymmetric Dzyaloshinskii-Moriya interaction (DMI), using higher order finite difference schemes, and different kinds of DMIs. Mathematical details about these extensions are published in *Conical-helix magnetic textures stabilized in thin films with different kinds of
-Dzyaloshinskii-Moriya interaction*, by M. Cepeda-Arancibia et al. (2025)
+This repository contains code extensions for the micromagnetic package OOMMF, for the calculation of the symmetric exchange interaction, and the antisymmetric Dzyaloshinskii-Moriya interaction (DMI), using higher order finite difference schemes, and different kinds of DMIs. Mathematical details about these extensions are published in *Micromagnetics of conical-helix textures in thin films with different kinds of Dzyaloshinskii-Moriya interactions*, by M. Cepeda-Arancibia et al. (2025)
 
 Micromagnetic codes usually approximate the calculation of the exchange interactions using the nearest 6-neighbours. The modules in this repository use the next-nearest neighbours, making a 12-neighbour finite difference scheme. Boundary conditions are treated in two ways:
 
